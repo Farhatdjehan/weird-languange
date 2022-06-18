@@ -56,7 +56,6 @@ const App: () => Node = () => {
       let tmp = text;
       let convertNonVocalAlpha = tmp.split(/[aeiou]/gi);
       let convertVocalAlpha = tmp.match(/[aeiou]/gi);
-
       let resultConvert;
 
       for (let i = 0; i <= convertNonVocalAlpha.length; i++) {
@@ -68,7 +67,6 @@ const App: () => Node = () => {
             convertVocalAlpha[i];
         }
       }
-      console.log(resultConvert.split('undefined'));
     } else {
       setAlert(true);
     }
@@ -104,9 +102,10 @@ const App: () => Node = () => {
             value={text}
           />
           <Button title="Submit Kata" onPress={convertWord}></Button>
+          <Text>Hasil : {resultConvert.split('undefined')[1]}</Text>
+
           <Modal
             onRequestClose={() => {
-              Alert.alert('Modal has been closed.');
               setAlert(!alert);
             }}
             animationType="fade"
