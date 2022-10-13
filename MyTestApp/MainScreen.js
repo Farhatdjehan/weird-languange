@@ -1,110 +1,127 @@
-import React, { useEffect, useState } from 'react';
-import type { Node } from 'react';
-import { StyleSheet, View } from 'react-native';
-// import Clipboard from '@react-native-clipboard/clipboard';
-import { Colors } from 'react-native/Libraries/NewAppScreen';
-import {
-  Layout,
-  IndexPath,
-  Button,
-  Input,
-  Text,
-  Select,
-  SelectItem,
-} from '@ui-kitten/components';
+import React, { useEffect, useRef, useState } from 'react';
+import { WebView } from 'react-native-webview';
+import { Image, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions, Linking } from 'react-native';
+import Tts from 'react-native-tts';
+import sound from './src/assets/sound.png';
 
-const MainScreen: () => Node = () => {
-  const [selectedIndex, setSelectedIndex] = useState(new IndexPath(0));
-  const data = ['Bahasa G', 'Bahasa S', 'Bahasa P'];
-  const displayValue = data[selectedIndex.row];
-  const renderOption = (title, idx) => <SelectItem key={idx} title={title} />;
-  const [text, setText] = useState();
 
-  const onChangeText = e => {
-    let tmp = e;
-    if (tmp !== '') {
-      let convertNonVocalAlpha = tmp.split(/[aeiou]/gi);
-      let convertVocalAlpha = tmp.match(/[aeiou]/gi);
-      let languange = displayValue.split(' ')[1].toLowerCase();
-      let resultConvert;
+const MainScreen = () => {
+  const { height, width } = useWindowDimensions();
+  console.log(height, width);
+  const [voices, setVoices] = useState([]);
+  const [ttsStatus, setTtsStatus] = useState('initiliazing')
+  const [speechRate, setSpeechRate] = useState(0.5);
+  const [data, setData] = useState();
+  const webViewRef = useRef();
+  const [speechPitch, setSpeechPitch] = useState(1);
+  const [
+    text,
+    setText
+  ] = useState('Enter Text like Hello About React');
 
-      if (convertVocalAlpha === undefined || convertVocalAlpha === null) {
-        resultConvert += tmp;
-      } else {
-        for (let i = 0; i <= convertNonVocalAlpha.length; i++) {
-          for (let j = 0; j <= 0; j++) {
-            resultConvert +=
-              convertNonVocalAlpha[i] +
-              convertVocalAlpha[i] +
-              languange +
-              convertVocalAlpha[i];
-          }
-        }
-      }
+  // useEffect(() => {
+  //   Tts.addEventListener(
+  //     'tts-start',
+  //     (_event) => setTtsStatus('started')
+  //   );
+  //   Tts.addEventListener(
+  //     'tts-finish',
+  //     (_event) => setTtsStatus('finished')
+  //   );
+  //   Tts.addEventListener(
+  //     'tts-cancel',
+  //     (_event) => setTtsStatus('cancelled')
+  //   );
+  //   Tts.setDefaultRate(speechRate);
+  //   Tts.setDefaultPitch(speechPitch);
+  //   return () => {
+  //     Tts.removeEventListener(
+  //       'tts-start',
+  //       (_event) => setTtsStatus('started')
+  //     );
+  //     Tts.removeEventListener(
+  //       'tts-finish',
+  //       (_event) => setTtsStatus('finished'),
+  //     );
+  //     Tts.removeEventListener(
+  //       'tts-cancel',
+  //       (_event) => setTtsStatus('cancelled'),
+  //     );
+  //   };
+  // }, []);
 
-      setText(resultConvert.split('undefined'));
+  const readText = async () => {
+    Tts.setDefaultLanguage('id-ID');
+    Tts.stop();
+    if (data == undefined) {
+      Tts.speak('');
     } else {
-      setText();
+      Tts.speak(data);
     }
   };
 
-  useEffect(() => {}, [text]);
+  const onMessage = (e) => {
+    setData(e?.nativeEvent?.data);
+  }
 
+  const handleNav = (e) => {
+    if (e.url.includes('play.google')
+      || e.url.includes('whatsapp')
+      || e.url.includes('facebook')
+      || e.url.includes('twitter')
+      || e.url.includes("asana")) {
+      webViewRef.current.stopLoading();
+      Linking.openURL(e.url);
+    }
+  }
   return (
     <>
-      <Layout style={styles.inputContainer} level="1">
-        <Text style={{ marginBottom: 32, textAlign: 'center' }}>Kamnos</Text>
-        <Input
-          style={{ marginBottom: 24, borderRadius: 24 }}
-          multiline
-          placeholder="Masukkan Kata..."
-          onChangeText={onChangeText}
-          value={text}
-          size="large"
-        />
-
-        <Text style={{ marginBottom: 8, fontWeight: 'bold', color: '#fff' }}>Tipe Bahasa</Text>
-        <Select
-          style={{ marginBottom: 50, borderRadius: 8 }}
-          placeholder="Pilih Bahasa"
-          value={displayValue}
-          selectedIndex={selectedIndex}
-          onSelect={index => setSelectedIndex(index)}>
-          {data.map(renderOption)}
-        </Select>
-      </Layout>
-      <Layout style={styles.resultContainer}>
-        <View style={{backgroundColor: '#E2E2E2', padding: 16, borderRadius: 24}}>
-          <Text style={{ marginBottom: 12, fontWeight: 'bold' }}>Hasil :</Text>
-          <Text>{text && text[1]}</Text>
-        </View>
-      </Layout>
+      <WebView
+        ref={webViewRef}
+        onNavigationStateChange={(e) => handleNav(e)}
+        onMessage={onMessage}
+        source={{ uri: 'https://kamus-nostalgia.vercel.app?mobile' }}
+      />
+      {data != "undefined" &&
+        <TouchableOpacity style={styles.button} onPress={readText}>
+          <View style={styles.wrapper}>
+            <Image style={styles.img} source={sound} />
+            <Text style={styles.text}>Suara</Text>
+          </View>
+        </TouchableOpacity>
+      }
     </>
   );
 };
 
 const styles = StyleSheet.create({
-  inputContainer: {
-    paddingLeft: 16,
-    paddingRight: 16,
-    paddingTop: 24,
-    backgroundColor: '#D5334B',
-    // flexDirection: 'column',
+
+  wrapper: {
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center'
   },
-  resultContainer: {
-    paddingLeft: 16,
-    paddingRight: 16,
-    paddingTop: 24,
-    flex: 1,
-    position: 'relative',
-    top: -30,
-    borderRadius: 28
-    // flexDirection: 'column',
+
+  img: {
+    width: 15,
+    height: 15,
+    marginRight: 6
   },
-  input: {
-    borderRadius: 2,
-    marginVertical: 2,
+
+  button: {
+    position: "absolute",
+    bottom: '2%',
+    left: '4%',
+    alignItems: "center",
+    backgroundColor: "#be2239",
+    padding: 12.25,
+    width: 90,
+    borderRadius: 8,
   },
+  text: {
+    color: "#fff",
+    fontWeight: 'bold'
+  }
 });
 
 export default MainScreen;

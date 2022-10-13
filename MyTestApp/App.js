@@ -1,24 +1,34 @@
-import React from 'react';
-import * as eva from '@eva-design/eva';
-import {
-  ApplicationProvider,
-  IconRegistry,
-  Layout,
-  Text,
-  TopNavigation,
-} from '@ui-kitten/components';
+import React  from 'react';
+import { KeyboardAvoidingView, StatusBar, StyleSheet } from 'react-native';
 import MainScreen from './MainScreen';
 
-const HomeScreen = () => (
-  <Layout style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
-    <Text category="h1">HOME</Text>
-  </Layout>
-);
-export default () => (
-  <>
-    <ApplicationProvider {...eva} theme={eva.light}>
-      {/* <HomeScreen /> */}
-      <MainScreen />
-    </ApplicationProvider>
-  </>
-);
+export default App = () => {
+  return (
+
+    <>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.container}
+        enabled={false}
+      >
+        <StatusBar
+          animated={true}
+          backgroundColor="#d5334b"
+        />
+        <MainScreen />
+      </KeyboardAvoidingView>
+    </>
+  )
+};
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  buttonsContainer: {
+    padding: 10
+  },
+  textStyle: {
+    textAlign: 'center',
+    marginBottom: 8
+  }
+});
