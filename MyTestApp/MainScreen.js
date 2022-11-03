@@ -1,23 +1,117 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, Share, useCallback } from 'react';
 import { WebView } from 'react-native-webview';
-import { Image, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions, Linking } from 'react-native';
+import { Image, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions, Linking, Platform, PermissionsAndroid, Alert } from 'react-native';
 import Tts from 'react-native-tts';
+import RNFetchBlob from 'rn-fetch-blob';
+import RNFS from 'react-native-fs';
+import { CameraRoll } from "@react-native-camera-roll/camera-roll";
+// import * as MediaLibrary from 'expo-media-library'
+// import * as FileSystem from 'expo-file-system'
 import sound from './src/assets/sound.png';
 
 
+// interface WebShareAPIParam {
+//   // ref https://developer.mozilla.org/en-US/docs/Web/API/Navigator/share
+//   url?: string;
+//   text?: string;
+//   title?: string;
+//   // files unhandled
+// }
+
 const MainScreen = () => {
   const { height, width } = useWindowDimensions();
-  console.log(height, width);
   const [voices, setVoices] = useState([]);
+  const [url, setUrl] = useState();
   const [ttsStatus, setTtsStatus] = useState('initiliazing')
   const [speechRate, setSpeechRate] = useState(0.5);
   const [data, setData] = useState();
   const webViewRef = useRef();
-  const [speechPitch, setSpeechPitch] = useState(1);
-  const [
-    text,
-    setText
-  ] = useState('Enter Text like Hello About React');
+
+  useEffect(() => {
+    Linking.getInitialURL().then(url => {
+      setUrl(url ? url : 'https://kamus-nostalgia.vercel.app/?mobile');
+    });
+
+    Linking.addEventListener('url', _handleOpenURL);
+
+  }, [])
+
+  // useEffect(() => {
+  //   if (data.type === "download") {
+  //     // if (data.type === 'download') {
+  //     // SaveToPhone(data.url)
+  //     // }/
+  //   }
+  // }, [data])
+
+  async function hasAndroidPermission() {
+    const permission = PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE;
+
+    const hasPermission = await PermissionsAndroid.check(permission);
+    if (hasPermission) {
+      return true;
+    }
+
+    const status = await PermissionsAndroid.request(permission);
+    return status === 'granted';
+  }
+
+  const saveImg = async (base64Img) => {
+    if (Platform.OS === "android" && !(await hasAndroidPermission())) {
+      return;
+    }
+    const dirs = Platform.OS === 'ios' ? RNFS.LibraryDirectoryPath : RNFS.ExternalDirectoryPath;
+    const downloadDest = `${dirs}/${((Math.random() * 10000000) | 0)}.png`;
+    const imageDatas = base64Img.split('data:image/png;base64,');
+    const imageData = imageDatas[1];
+
+    RNFetchBlob.fs.writeFile(downloadDest, imageData, 'base64').then((rst) => {
+      CameraRoll.save(downloadDest).then((e1) => {
+        Alert.alert('Berhasil Menyimpan Gambar')
+      }).catch((e2) => {
+        Alert.alert('Gagal Menyimpan')
+      })
+
+    });
+
+  }
+
+  const _handleOpenURL = data => {
+    setUrl(data.url ? data.url : 'https://kamus-nostalgia.vercel.app/');
+  };
+
+
+  // const SaveToPhone = async (url) => {
+  //   console.log(url)
+
+  //   const { uri } = await FileSystem.downloadAsync(
+  //     url,
+  //     `${FileSystem.documentDirectory}meme.jpg`
+  //   ).catch((e) =>
+  //     console.log('instagram share failed', JSON.stringify(e), url)
+  //   )
+
+  //   const permission = await MediaLibrary.requestPermissionsAsync()
+  //   if (permission.granted) {
+  //     try {
+  //       const asset = await MediaLibrary.createAssetAsync(uri)
+  //       MediaLibrary.createAlbumAsync('Images', asset, false)
+  //         .then(() => {
+  //           console.log('File Saved Successfully!')
+  //           // Toast.show('image save success!!', {
+  //           //   duration: 1000,
+  //           // });
+  //         })
+  //         .catch(() => {
+  //           console.log('Error In Saving File!')
+  //         })
+  //     } catch (error) {
+  //       console.log(error)
+  //     }
+  //   } else {
+  //     console.log('Need Storage permission to save file')
+  //   }
+  // }
 
   // useEffect(() => {
   //   Tts.addEventListener(
@@ -50,6 +144,8 @@ const MainScreen = () => {
   //   };
   // }, []);
 
+
+
   const readText = async () => {
     Tts.setDefaultLanguage('id-ID');
     Tts.stop();
@@ -60,35 +156,82 @@ const MainScreen = () => {
     }
   };
 
-  const onMessage = (e) => {
-    setData(e?.nativeEvent?.data);
-  }
 
-  const handleNav = (e) => {
-    if (e.url.includes('play.google')
-      || e.url.includes('whatsapp')
-      || e.url.includes('facebook')
-      || e.url.includes('twitter')
-      || e.url.includes("asana")) {
-      webViewRef.current.stopLoading();
-      Linking.openURL(e.url);
+  // const onMessage = useCallback(async (e: WebViewMessageEvent) => {
+  //   const { data } = e.nativeEvent;
+  //   console.log(e.nativeEvent, );
+  //   if (data.startsWith('share:')) {
+  //     try {
+  //       const param: WebShareAPIParam = JSON.parse(data.slice('share:'.length));
+  //       if (param.url == null && param.text == null) {
+  //         return;
+  //       }
+  //       await Share.share(
+  //         {
+  //           title: param.title,
+  //           message: [param.text, param.url].filter(Boolean).join(' '), // join text and url if both exists
+  //           url: param.url,
+  //         },
+  //         {
+  //           dialogTitle: param.title,
+  //           subject: param.title,
+  //         },
+  //       );
+  //     } catch (e) {
+  //       console.error(e);
+  //     }
+  //   }
+  // }, []);
+
+
+  useEffect(() => {
+    // let add = "?mobile";
+    // setUrl(url + add);
+
+  }, [])
+
+  const onMessage = (e) => {
+    // let tmp = e?.nativeEvent?.url + '?mobile'
+    setUrl(e?.nativeEvent?.url);
+    if (e?.nativeEvent.url === "https://kamus-nostalgia.vercel.app/write") {
+      setData(e?.nativeEvent?.data);
+    }
+    if (e?.nativeEvent.url === "https://kamus-nostalgia.vercel.app/template") {
+      saveImg(e?.nativeEvent?.data)
     }
   }
+
+  // const handleNav = (e) => {
+  //   setUrl(e.url);
+  //   console.log(e.url);
+  //   // if (e.url !== 'https://kamus-nostalgia.vercel.app') {
+  //   //   webViewRef.current.stopLoading();
+  //   //   Linking.openURL(e.url);
+  //   // }
+  // }
   return (
     <>
-      <WebView
-        ref={webViewRef}
-        onNavigationStateChange={(e) => handleNav(e)}
-        onMessage={onMessage}
-        source={{ uri: 'https://kamus-nostalgia.vercel.app?mobile' }}
-      />
-      {data != "undefined" &&
-        <TouchableOpacity style={styles.button} onPress={readText}>
-          <View style={styles.wrapper}>
-            <Image style={styles.img} source={sound} />
-            <Text style={styles.text}>Suara</Text>
-          </View>
-        </TouchableOpacity>
+      {url ? (
+        <>
+
+          <WebView
+            ref={webViewRef}
+            onMessage={onMessage}
+            javaScriptEnabled={true}
+            scalesPageToFit={false}
+            domStorageEnabled={true}
+            source={{ uri: url }}
+          />
+          {url === "https://kamus-nostalgia.vercel.app/write" && data != "undefined" &&
+            <TouchableOpacity style={styles.button} onPress={readText}>
+              <View style={styles.wrapper}>
+                <Image style={styles.img} source={sound} />
+              </View>
+            </TouchableOpacity>
+          }
+        </>
+      )
+        : null
       }
     </>
   );
@@ -110,12 +253,12 @@ const styles = StyleSheet.create({
 
   button: {
     position: "absolute",
-    bottom: '2%',
-    left: '4%',
+    bottom: '1.6%',
+    left: '20%',
     alignItems: "center",
     backgroundColor: "#be2239",
-    padding: 12.25,
-    width: 90,
+    padding: 12,
+    // width: 90,
     borderRadius: 8,
   },
   text: {
